@@ -11,12 +11,6 @@ my_path_server is a ROS package based off of exmple_server written originally by
 ### Usage
 Start Simulator:
 `roslaunch stdr_launchers server_with_map_and_gui_plus_robot.launch`
-
-Start Client and Service
-`roslaunch my_path_server my_path_server.launch`
-
-OR
-
 Start Service:
 `rosrun my_path_server my_path_service`
 Start Robot:

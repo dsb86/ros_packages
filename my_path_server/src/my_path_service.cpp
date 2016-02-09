@@ -121,16 +121,16 @@ void get_yaw_and_dist(geometry_msgs::Pose current_pose, geometry_msgs::Pose goal
 
 
  double x_coor_c = current_pose.position.x;
- ROS_INFO("xc %f", x_coor_c);
+ //ROS_INFO("xc %f", x_coor_c);
  double y_coor_c = current_pose.position.y;
- ROS_INFO("yc %f", y_coor_c);
+ //ROS_INFO("yc %f", y_coor_c);
  double x_coor_g = goal_pose.position.x;
- ROS_INFO("xg %f", x_coor_g);
+ //ROS_INFO("xg %f", x_coor_g);
  double y_coor_g = goal_pose.position.y;
  ROS_INFO("yg %f", y_coor_g);
  
  dist = sqrt(pow((x_coor_c-x_coor_g), 2.0)+pow((y_coor_c-y_coor_g), 2.0)); //rectified
- ROS_INFO("distance of %f", dist);
+ //ROS_INFO("distance of %f", dist);
  if (dist < g_dist_tol) { //too small of a motion, so just set the heading from goal heading
    heading = convertPlanarQuat2Phi(goal_pose.orientation); 
  }
@@ -175,7 +175,7 @@ bool callback(example_ros_service::PathSrvRequest& request, example_ros_service:
         do_spin(spin_angle); // carry out this incremental action
         // we will just assume that this action was successful--really should have sensor feedback here
         
-        g_current_pose.orientation = pose_desired.orientation; // assumes got to desired orientation precisely
+        g_current_pose.orientation = convertPlanarPhi2Quaternion(yaw_desired); // assumes got to desired orientation precisely
         
         //FIX THE NEXT LINE, BASED ON get_yaw_and_dist()
          if(travel_distance>g_dist_tol){ 
