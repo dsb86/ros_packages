@@ -1,0 +1,5 @@
+<launch>
+
+<node name="myclient" pkg="my_path_server" type="my_path_client"/>
+<node name="myserver" pkg="my_path_server" type="my_path_service"/>
+</launch>
