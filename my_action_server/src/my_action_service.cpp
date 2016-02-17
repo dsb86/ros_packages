@@ -1,6 +1,6 @@
-#include<ros/ros.h>
+#include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
-
+#include <my_action_server/pathAction.h>
 class MyActionServer {
 private:
 
@@ -9,7 +9,7 @@ private:
     // this class will own a "SimpleActionServer" called "as_".
     // it will communicate using messages defined in example_action_server/action/demo.action
     // the type "demoAction" is auto-generated from our name "demo" and generic name "Action"
-    actionlib::SimpleActionServer<example_action_server::demoAction> as_;
+    actionlib::SimpleActionServer<my_action_server::pathAction> as_;
     
     // here are some message types to communicate with our client(s)
     my_action_server::pathGoal goal_; // goal message, received from client
@@ -40,7 +40,7 @@ public:
 // The final argument,  "false", says don't start the server yet.  (We'll do this in the constructor)
 
 MyActionServer::MyActionServer() :
-   as_(nh_, "path_action", boost::bind(&ExampleActionServer::executeCB, this, _1),false) 
+   as_(nh_, "path_action", boost::bind(&MyActionServer::executeCB, this, _1),false) 
 
 {
     ROS_INFO("in constructor of exampleActionServer...");
@@ -58,6 +58,8 @@ MyActionServer::MyActionServer() :
 // The name "demo" is prepended to other message types created automatically during compilation.
 // e.g.,  "demoAction" is auto-generated from (our) base name "demo" and generic name "Action"
 void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_server::pathAction>::GoalConstPtr& goal) {
+    /*
+
     ROS_INFO("in executeCB");
     
     //do work here: this is where your interesting code goes
@@ -84,6 +86,8 @@ void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_ser
     //if we survive to here, then the goal was successfully accomplished; inform the client
     result_.output = countdown_val_; //value should be zero, if completed countdown
     as_.setSucceeded(result_); // return the "result" message to client, along with "success" status
+
+    */
 }
 
 
@@ -93,7 +97,7 @@ int main(int argc, char** argv) {
 
     ROS_INFO("instantiating the timer_action_server: ");
 
-    ExampleActionServer as_object; // create an instance of the class "ExampleActionServer"
+    MyActionServer as_object; // create an instance of the class "ExampleActionServer"
     
     ROS_INFO("going into spin");
     // from here, all the work is done in the action server, with the interesting stuff done within "executeCB()"

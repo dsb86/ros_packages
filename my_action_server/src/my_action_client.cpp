@@ -2,10 +2,18 @@
 #include <actionlib/client/simple_action_client.h>
 #include <my_action_server/pathAction.h> //reference action message in this package
 
+ // this message type is defined in the current package
+#include <iostream>
+#include <string>
+#include <nav_msgs/Path.h>
+#include <std_msgs/Bool.h>
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseStamped.h>
+
 using namespace std;
 
 void lidarCb(const std_msgs::Bool& lidar_alarm){
-	if(lidar-alarm){
+	if(lidar_alarm.data){
 		ROS_INFO("cancelling goal");
     	action_client.cancelGoal();
 	}
