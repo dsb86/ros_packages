@@ -12,20 +12,20 @@ private:
     actionlib::SimpleActionServer<example_action_server::demoAction> as_;
     
     // here are some message types to communicate with our client(s)
-    example_action_server::demoGoal goal_; // goal message, received from client
-    example_action_server::demoResult result_; // put results here, to be sent back to the client when done w/ goal
-    example_action_server::demoFeedback feedback_; // for feedback 
+    my_action_server::pathGoal goal_; // goal message, received from client
+    my_action_server::pathResult result_; // put results here, to be sent back to the client when done w/ goal
+    my_action_server::pathFeedback feedback_; // for feedback 
     //  use: as_.publishFeedback(feedback_); to send incremental feedback to the client
-    int countdown_val_;
+    
 
 
 public:
-    ExampleActionServer(); //define the body of the constructor outside of class definition
+    MyActionServer(); //define the body of the constructor outside of class definition
 
-    ~ExampleActionServer(void) {
+    ~MyActionServer(void) {
     }
     // Action Interface
-    void executeCB(const actionlib::SimpleActionServer<example_action_server::demoAction>::GoalConstPtr& goal);
+    void executeCB(const actionlib::SimpleActionServer<my_action_server::pathAction>::GoalConstPtr& goal);
 };
 
 //implementation of the constructor:
@@ -39,10 +39,9 @@ public:
 // using the "this" keyword.  the _1 argument says that our executeCB function takes one argument
 // The final argument,  "false", says don't start the server yet.  (We'll do this in the constructor)
 
-ExampleActionServer::ExampleActionServer() :
-   as_(nh_, "timer_action", boost::bind(&ExampleActionServer::executeCB, this, _1),false) 
-// in the above initialization, we name the server "example_action"
-//  clients will need to refer to this name to connect with this server
+MyActionServer::MyActionServer() :
+   as_(nh_, "path_action", boost::bind(&ExampleActionServer::executeCB, this, _1),false) 
+
 {
     ROS_INFO("in constructor of exampleActionServer...");
     // do any other desired initializations here...specific to your implementation
@@ -58,9 +57,9 @@ ExampleActionServer::ExampleActionServer() :
 // defined in our package, "example_action_server", in the subdirectory "action", called "demo.action"
 // The name "demo" is prepended to other message types created automatically during compilation.
 // e.g.,  "demoAction" is auto-generated from (our) base name "demo" and generic name "Action"
-void ExampleActionServer::executeCB(const actionlib::SimpleActionServer<example_action_server::demoAction>::GoalConstPtr& goal) {
+void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_server::pathAction>::GoalConstPtr& goal) {
     ROS_INFO("in executeCB");
-    ROS_INFO("goal input is: %d", goal->input);
+    
     //do work here: this is where your interesting code goes
     ros::Rate timer(1.0); // 1Hz timer
     countdown_val_ = goal->input;
@@ -86,6 +85,8 @@ void ExampleActionServer::executeCB(const actionlib::SimpleActionServer<example_
     result_.output = countdown_val_; //value should be zero, if completed countdown
     as_.setSucceeded(result_); // return the "result" message to client, along with "success" status
 }
+
+
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "timer_action_server_node"); // name this node 
