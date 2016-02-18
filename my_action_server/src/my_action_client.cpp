@@ -15,6 +15,9 @@
 using namespace std;
 typedef actionlib::SimpleActionClient<my_action_server::pathAction> Client;
 
+bool g_lidar_alarm=false;
+ros::Subscriber g_alarm_subscriber;
+
 class MyActionClient
 {
 
@@ -34,6 +37,8 @@ public:
     void lidarCb(const std_msgs::Bool& lidar_alarm);
     geometry_msgs::Quaternion convertPlanarPhi2Quaternion(double phi);
     void setup();
+    void goalCancel();
+    void goalClear();
 };
 
 	MyActionClient::MyActionClient() : 
@@ -58,9 +63,10 @@ public:
 	}
 
 	void MyActionClient::lidarCb(const std_msgs::Bool& lidar_alarm){
+		g_lidar_alarm=lidar_alarm.data;
 		if(lidar_alarm.data){
 			ROS_INFO("cancelling goal");
-	    	action_client_.cancelGoal();
+	    	//action_client_.cancelGoal();
 		}
 	}
 
@@ -115,26 +121,53 @@ public:
 	    pose_stamped.pose.position.y=12.0; 
 	    goal_.nav_path.poses.push_back(pose_stamped);
 
-
+	   	g_alarm_subscriber = nh_.subscribe("lidar_alarm",1, &MyActionClient::lidarCb, this);
 	  
+	    action_client_.sendGoal(goal_);
+	}
+
+	void MyActionClient::goalCancel(){
+		 action_client_.cancelGoal();
+
+	}
+
+	void MyActionClient::goalClear(){
+		goal_.nav_path.poses.clear();
+		geometry_msgs::PoseStamped pose_stamped;
+	    geometry_msgs::Pose pose;
+	    pose.position.x = 0.0; // say desired x-coord is 1
+	    pose.position.y = 0.0;
+	    pose.position.z = 0.0; // let's hope so!
+	    pose.orientation.x = 0.0; //always, for motion in horizontal plane
+	    pose.orientation.y = 0.0; // ditto
+	    pose.orientation.z = 0.0; // implies oriented at yaw=0, i.e. along x axis
+	    pose.orientation.w = 1.0; //sum of squares of all components of unit quaternion is 1
+	    pose_stamped.pose = pose;
+	    goal_.nav_path.poses.push_back(pose_stamped);
 	    action_client_.sendGoal(goal_);
 	}
 
 
 
 
-
-
 int main(int argc, char **argv) {
     ros::init(argc, argv, "my_action_client_node"); // name this node 
-    ros::NodeHandle nh; 
+   
     // goal to send to server
     MyActionClient my_client;
     my_client.setup();
     	    
 	    
     ros::spin();
-    
+    while(ros::ok()) {
+    	if(!g_lidar_alarm){
+    		ros::spinOnce();
+    	}
+    	else{
+    		my_client.goalCancel();
+    		my_client.goalClear();
+    	}
+    }
 
     return 0;
 }
