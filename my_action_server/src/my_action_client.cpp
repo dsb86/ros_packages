@@ -9,90 +9,130 @@
 #include <std_msgs/Bool.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <sensor_msgs/LaserScan.h>
+#include <std_msgs/Float32.h>
 
 using namespace std;
+typedef actionlib::SimpleActionClient<my_action_server::pathAction> Client;
 
-void lidarCb(const std_msgs::Bool& lidar_alarm){
-	if(lidar_alarm.data){
-		ROS_INFO("cancelling goal");
-    	action_client.cancelGoal();
+class MyActionClient
+{
+
+private:
+    ros::NodeHandle nh_;
+    Client action_client_;
+    my_action_server::pathGoal goal_; // goal message, received from client
+    my_action_server::pathResult result_; // put results here, to be sent back to the client when done w/ goal
+    my_action_server::pathFeedback feedback_;
+
+public:
+	MyActionClient();
+
+	~MyActionClient(void) {
+    }
+    // Action Interface
+    void lidarCb(const std_msgs::Bool& lidar_alarm);
+    geometry_msgs::Quaternion convertPlanarPhi2Quaternion(double phi);
+    void setup();
+};
+
+	MyActionClient::MyActionClient() : 
+		action_client_("path_action", true)
+	{
+	    ROS_INFO("waiting for server: ");
+	    action_client_.waitForServer(); // wait for up to 5 seconds
+	    // something odd in above: does not seem to wait for 5 seconds, but returns rapidly if server not running
+	    //bool server_exists = action_client.waitForServer(); //wait foreve
+	    //ros::Subscriber alarm_subscriber = nh.subscribe("lidar_alarm", 1, lidarCb);
+	    ROS_INFO("connected to action server"); 
+
 	}
-}
+
+	geometry_msgs::Quaternion MyActionClient::convertPlanarPhi2Quaternion(double phi) {
+	    geometry_msgs::Quaternion quaternion;
+	    quaternion.x = 0.0;
+	    quaternion.y = 0.0;
+	    quaternion.z = sin(phi / 2.0);
+	    quaternion.w = cos(phi / 2.0);
+	    return quaternion;
+	}
+
+	void MyActionClient::lidarCb(const std_msgs::Bool& lidar_alarm){
+		if(lidar_alarm.data){
+			ROS_INFO("cancelling goal");
+	    	action_client_.cancelGoal();
+		}
+	}
+
+	void MyActionClient::setup(){
+
+		   	
+    
+
+    //actionlib::SimpleActionClient<my_action_server::pathAction> action_client("path_action", true);
+
+
+    	geometry_msgs::Quaternion quat;
+    	
+
+		geometry_msgs::PoseStamped pose_stamped;
+	    geometry_msgs::Pose pose;
+	    pose.position.x = 0.0; // say desired x-coord is 1
+	    pose.position.y = 0.0;
+	    pose.position.z = 0.0; // let's hope so!
+	    pose.orientation.x = 0.0; //always, for motion in horizontal plane
+	    pose.orientation.y = 0.0; // ditto
+	    pose.orientation.z = 0.0; // implies oriented at yaw=0, i.e. along x axis
+	    pose.orientation.w = 1.0; //sum of squares of all components of unit quaternion is 1
+	    pose_stamped.pose = pose;
+	    goal_.nav_path.poses.push_back(pose_stamped);
+	    
+	    // some more poses...
+	    quat = convertPlanarPhi2Quaternion(0); // get a quaternion corresponding to this heading
+	    pose_stamped.pose.orientation = quat;   
+	    
+	    pose_stamped.pose.position.x=3; 
+	    pose_stamped.pose.position.y=0.0; 
+	    goal_.nav_path.poses.push_back(pose_stamped);
+	    
+	    pose_stamped.pose.position.x=8.0; 
+	    pose_stamped.pose.position.y=5.0; 
+	    goal_.nav_path.poses.push_back(pose_stamped);
+
+	    pose_stamped.pose.position.x=4.0; 
+	    pose_stamped.pose.position.y=7.0; 
+	    goal_.nav_path.poses.push_back(pose_stamped);
+	    
+	    pose_stamped.pose.position.x=3.0; 
+	    pose_stamped.pose.position.y=7.0; 
+	    goal_.nav_path.poses.push_back(pose_stamped);
+
+	    pose_stamped.pose.position.x=3.0; 
+	    pose_stamped.pose.position.y=12.0; 
+	    goal_.nav_path.poses.push_back(pose_stamped);
+	    
+	    pose_stamped.pose.position.x=0.0; 
+	    pose_stamped.pose.position.y=12.0; 
+	    goal_.nav_path.poses.push_back(pose_stamped);
+
+
+	  
+	    action_client_.sendGoal(goal_);
+	}
+
+
+
 
 
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "my_action_client_node"); // name this node 
-    
+    ros::NodeHandle nh; 
     // goal to send to server
-   	my_action_server::pathGoal goal; 
-    
-
-    actionlib::SimpleActionClient<my_action_server:pathAction> action_client("path_action", true);
-
-
-    geometry_msgs::Quaternion quat;
-    ros::Subscriber lidar_subscriber = nh.subscribe("lidar_alarm", 1, lidarCb);
-
-
-    ROS_INFO("waiting for server: ");
-    bool server_exists = action_client.waitForServer(ros::Duration(5.0)); // wait for up to 5 seconds
-    // something odd in above: does not seem to wait for 5 seconds, but returns rapidly if server not running
-    //bool server_exists = action_client.waitForServer(); //wait forever
-
-    if (!server_exists) {
-        ROS_WARN("could not connect to server; halting");
-        return 0; // bail out; optionally, could print a warning message and retry
-    }
-    
-   
-    ROS_INFO("connected to action server"); 
-
-    
-    //create some path points...this should be done by some intelligent algorithm, but we'll hard-code it here
-    geometry_msgs::PoseStamped pose_stamped;
-    geometry_msgs::Pose pose;
-    pose.position.x = 0.0; // say desired x-coord is 1
-    pose.position.y = 0.0;
-    pose.position.z = 0.0; // let's hope so!
-    pose.orientation.x = 0.0; //always, for motion in horizontal plane
-    pose.orientation.y = 0.0; // ditto
-    pose.orientation.z = 0.0; // implies oriented at yaw=0, i.e. along x axis
-    pose.orientation.w = 1.0; //sum of squares of all components of unit quaternion is 1
-    pose_stamped.pose = pose;
-    goal.request.nav_path.poses.push_back(pose_stamped);
-    
-    // some more poses...
-    quat = convertPlanarPhi2Quaternion(0); // get a quaternion corresponding to this heading
-    pose_stamped.pose.orientation = quat;   
-    
-    pose_stamped.pose.position.x=3; 
-    pose_stamped.pose.position.y=0.0; 
-    goal.request.nav_path.poses.push_back(pose_stamped);
-    
-    pose_stamped.pose.position.x=8.0; 
-    pose_stamped.pose.position.y=5.0; 
-    goal.request.nav_path.poses.push_back(pose_stamped);
-
-    pose_stamped.pose.position.x=4.0; 
-    pose_stamped.pose.position.y=7.0; 
-    goal.request.nav_path.poses.push_back(pose_stamped);
-    
-    pose_stamped.pose.position.x=3.0; 
-    pose_stamped.pose.position.y=7.0; 
-    goal.request.nav_path.poses.push_back(pose_stamped);
-
-    pose_stamped.pose.position.x=3.0; 
-    pose_stamped.pose.position.y=12.0; 
-    goal.request.nav_path.poses.push_back(pose_stamped);
-    
-    pose_stamped.pose.position.x=0.0; 
-    pose_stamped.pose.position.y=12.0; 
-    goal.request.nav_path.poses.push_back(pose_stamped);
-
-
-  
-    action_client.sendGoal(goal);
+    MyActionClient my_client;
+    my_client.setup();
+    	    
+	    
     ros::spin();
     
 
