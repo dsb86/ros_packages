@@ -182,8 +182,8 @@ void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_ser
 }
 
 void MyActionServer::do_evasive_spin(){
-    feedback_.fdbk=true;
-    as_.publishFeedback(feedback_);
+    //feedback_.fdbk=true;
+    //as_.publishFeedback(feedback_);
     do_spin(0.5);
 }
 
@@ -228,10 +228,21 @@ void MyActionServer::do_spin(double spin_ang) {
     
     g_twist_cmd.angular.z= sgn(spin_ang)*g_spin_speed;
     while(timer<final_time) {
+        if(as_.isPreemptRequested() || !ros::ok()){
+            ROS_INFO("Doing Halt From Rot");
+            as_.setPreempted();
+            do_halt();
+            feedback_.fdbk=true;
+            as_.publishFeedback(feedback_);
+            break;
+        }
+        else{
           g_twist_commander.publish(g_twist_cmd);
           timer+=g_sample_dt;
           loop_timer.sleep(); 
-          }  
+        }
+
+    }  
     do_halt(); 
 }
 
@@ -244,10 +255,20 @@ void MyActionServer::do_move(double distance) { // always assumes robot is alrea
     g_twist_cmd.angular.z = 0.0; //stop spinning
     g_twist_cmd.linear.x = sgn(distance)*g_move_speed;
     while(timer<final_time) {
+        if(as_.isPreemptRequested() || !ros::ok()){
+            ROS_INFO("Doing Halt From Lin");
+            as_.setPreempted();
+            do_halt();
+            feedback_.fdbk=false;
+            as_.publishFeedback(feedback_);
+            break;
+        }
+        else{
           g_twist_commander.publish(g_twist_cmd);
           timer+=g_sample_dt;
           loop_timer.sleep(); 
-          }  
+        }
+    }  
     do_halt();
 }
 
