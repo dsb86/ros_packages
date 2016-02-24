@@ -16,7 +16,7 @@ using namespace std;
 typedef actionlib::SimpleActionClient<my_action_server::pathAction> Client;
 
 bool g_lidar_alarm=false;
-bool g_rotating_feedback=false;
+bool g_rotating=false;
 ros::Subscriber g_alarm_subscriber;
 
 class MyActionClient
@@ -39,187 +39,135 @@ public:
     void feedbackCb(const my_action_server::pathFeedbackConstPtr& fdbk_msg);
     geometry_msgs::Quaternion convertPlanarPhi2Quaternion(double phi);
     void setup();
-    void goalReset();
+    void goalRotate();
+    void goalResume();
     void goalCancel();
     void goalClear();
 
 };
 
-	MyActionClient::MyActionClient() : 
-		action_client_("path_action", true)
-	{
-	    ROS_INFO("waiting for server: ");
-	    action_client_.waitForServer(); // wait for up to 5 seconds
-	    // something odd in above: does not seem to wait for 5 seconds, but returns rapidly if server not running
-	    //bool server_exists = action_client.waitForServer(); //wait foreve
-	    //ros::Subscriber alarm_subscriber = nh.subscribe("lidar_alarm", 1, lidarCb);
-	    ROS_INFO("connected to action server"); 
+MyActionClient::MyActionClient() : 
+	action_client_("path_action", true)
+{
+    ROS_INFO("waiting for server: ");
+    action_client_.waitForServer(); // wait for up to 5 seconds
+    // something odd in above: does not seem to wait for 5 seconds, but returns rapidly if server not running
+    //bool server_exists = action_client.waitForServer(); //wait foreve
+    //ros::Subscriber alarm_subscriber = nh.subscribe("lidar_alarm", 1, lidarCb);
+    ROS_INFO("connected to action server"); 
 
+}
+
+void MyActionClient::setup(){
+//actionlib::SimpleActionClient<my_action_server::pathAction> action_client("path_action", true);
+	goal_.rotate=false;
+
+	geometry_msgs::Quaternion quat;
+	geometry_msgs::PoseStamped pose_stamped;
+    geometry_msgs::Pose pose;
+
+    pose.position.x = 0.0; // say desired x-coord is 1
+    pose.position.y = 0.0;
+    pose.position.z = 0.0; // let's hope so!
+    pose.orientation.x = 0.0; //always, for motion in horizontal plane
+    pose.orientation.y = 0.0; // ditto
+    pose.orientation.z = 0.0; // implies oriented at yaw=0, i.e. along x axis
+    pose.orientation.w = 1.0; //sum of squares of all components of unit quaternion is 1
+    pose_stamped.pose = pose;
+    goal_.nav_path.poses.push_back(pose_stamped);
+    
+    // some more poses...
+    quat = convertPlanarPhi2Quaternion(0); // get a quaternion corresponding to this heading
+    pose_stamped.pose.orientation = quat;   
+    
+    pose_stamped.pose.position.x=20; 
+    pose_stamped.pose.position.y=0.0; 
+    goal_.nav_path.poses.push_back(pose_stamped);
+    
+   	g_alarm_subscriber = nh_.subscribe("lidar_alarm",1, &MyActionClient::lidarCb, this);
+  
+    action_client_.sendGoal(goal_);
+}
+
+void MyActionClient::lidarCb(const std_msgs::Bool& lidar_alarm){
+	g_lidar_alarm=lidar_alarm.data;
+	if(lidar_alarm.data){
+		//ROS_WARN("Lidar Alarm");
+    	//action_client_.cancelGoal();
 	}
+}
 
-	geometry_msgs::Quaternion MyActionClient::convertPlanarPhi2Quaternion(double phi) {
-	    geometry_msgs::Quaternion quaternion;
-	    quaternion.x = 0.0;
-	    quaternion.y = 0.0;
-	    quaternion.z = sin(phi / 2.0);
-	    quaternion.w = cos(phi / 2.0);
-	    return quaternion;
+
+void MyActionClient::goalCancel(){
+	 action_client_.cancelGoal();
+
+}
+
+
+
+void MyActionClient::feedbackCb(const my_action_server::pathFeedbackConstPtr& fdbk_msg) {
+    ROS_INFO("feedback status");
+    feedback_.fdbk = fdbk_msg->fdbk;
+     //make status available to "main()"
+	if(feedback_.fdbk){
+		ROS_INFO("Beggining Rotation");
+		goalRotate();
+		ros::spinOnce();
 	}
-	
-	void MyActionClient::feedbackCb(const my_action_server::pathFeedbackConstPtr& fdbk_msg) {
-	    ROS_INFO("feedback status");
-	    feedback_.fdbk = fdbk_msg->fdbk;
-	    g_rotating_feedback=feedback_.fdbk; //make status available to "main()"
-    	if(g_lidar_alarm && !g_rotating_feedback){
-    		ROS_INFO("we gonna crash");
-    		goalCancel();
-    		goalClear();
-    		ros::spinOnce();
-    	}
-    	else if(!g_lidar_alarm && g_rotating_feedback){
-    		ROS_INFO("you spin me right round");
-    		goalCancel();
-    		goalReset();
-    		ros::spinOnce();
-    	}
+	else{
+		ROS_INFO("Resuming Linear Motion");
+		goalResume();
+		ros::spinOnce();
 	}
+}
 
-	void MyActionClient::lidarCb(const std_msgs::Bool& lidar_alarm){
-		g_lidar_alarm=lidar_alarm.data;
-		if(lidar_alarm.data){
-			ROS_INFO("cancelling goal");
-	    	//action_client_.cancelGoal();
-		}
-	}
+void MyActionClient::goalRotate(){
+	goal_.nav_path.poses.clear();
+    goal_.rotate=true;
+    action_client_.sendGoal(goal_);
+}
 
-	void MyActionClient::setup(){
-    //actionlib::SimpleActionClient<my_action_server::pathAction> action_client("path_action", true);
-    	geometry_msgs::Quaternion quat;
-    	
-
-		geometry_msgs::PoseStamped pose_stamped;
-	    geometry_msgs::Pose pose;
-	    pose.position.x = 0.0; // say desired x-coord is 1
-	    pose.position.y = 0.0;
-	    pose.position.z = 0.0; // let's hope so!
-	    pose.orientation.x = 0.0; //always, for motion in horizontal plane
-	    pose.orientation.y = 0.0; // ditto
-	    pose.orientation.z = 0.0; // implies oriented at yaw=0, i.e. along x axis
-	    pose.orientation.w = 1.0; //sum of squares of all components of unit quaternion is 1
-	    pose_stamped.pose = pose;
-	    goal_.nav_path.poses.push_back(pose_stamped);
-	    
-	    // some more poses...
-	    quat = convertPlanarPhi2Quaternion(0); // get a quaternion corresponding to this heading
-	    pose_stamped.pose.orientation = quat;   
-	    
-	    pose_stamped.pose.position.x=3; 
-	    pose_stamped.pose.position.y=0.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
-	    
-	    pose_stamped.pose.position.x=8.0; 
-	    pose_stamped.pose.position.y=5.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
-
-	    pose_stamped.pose.position.x=4.0; 
-	    pose_stamped.pose.position.y=7.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
-	    
-	    pose_stamped.pose.position.x=3.0; 
-	    pose_stamped.pose.position.y=7.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
-
-	    pose_stamped.pose.position.x=3.0; 
-	    pose_stamped.pose.position.y=12.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
-	    
-	    pose_stamped.pose.position.x=0.0; 
-	    pose_stamped.pose.position.y=12.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
-
-	    goal_.rotate=false;
-
-	   	g_alarm_subscriber = nh_.subscribe("lidar_alarm",1, &MyActionClient::lidarCb, this);
-	  
-	    action_client_.sendGoal(goal_);
-	}
-
-	void MyActionClient::goalReset(){
-    //actionlib::SimpleActionClient<my_action_server::pathAction> action_client("path_action", true);
+void MyActionClient::goalResume(){
+//actionlib::SimpleActionClient<my_action_server::pathAction> action_client("path_action", true);
 
 
-    	geometry_msgs::Quaternion quat;
-    	
+	goal_.nav_path.poses.clear();
+	goal_.rotate=false;
 
-		geometry_msgs::PoseStamped pose_stamped;
-	    geometry_msgs::Pose pose;
-	    pose.position.x = 0.0; // say desired x-coord is 1
-	    pose.position.y = 0.0;
-	    pose.position.z = 0.0; // let's hope so!
-	    pose.orientation.x = 0.0; //always, for motion in horizontal plane
-	    pose.orientation.y = 0.0; // ditto
-	    pose.orientation.z = 0.0; // implies oriented at yaw=0, i.e. along x axis
-	    pose.orientation.w = 1.0; //sum of squares of all components of unit quaternion is 1
-	    pose_stamped.pose = pose;
-	    goal_.nav_path.poses.clear();
-	    goal_.nav_path.poses.push_back(pose_stamped);
-	    
-	    // some more poses...
-	    quat = convertPlanarPhi2Quaternion(0); // get a quaternion corresponding to this heading
-	    pose_stamped.pose.orientation = quat;   
-	    
-	    pose_stamped.pose.position.x=3; 
-	    pose_stamped.pose.position.y=0.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
-	    
-	    pose_stamped.pose.position.x=8.0; 
-	    pose_stamped.pose.position.y=5.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
+	geometry_msgs::Quaternion quat;	    
+	geometry_msgs::PoseStamped pose_stamped;
+    geometry_msgs::Pose pose;
 
-	    pose_stamped.pose.position.x=4.0; 
-	    pose_stamped.pose.position.y=7.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
-	    
-	    pose_stamped.pose.position.x=3.0; 
-	    pose_stamped.pose.position.y=7.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
-
-	    pose_stamped.pose.position.x=3.0; 
-	    pose_stamped.pose.position.y=12.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
-	    
-	    pose_stamped.pose.position.x=0.0; 
-	    pose_stamped.pose.position.y=12.0; 
-	    goal_.nav_path.poses.push_back(pose_stamped);
-
-	    goal_.rotate=false;
-	  
-	    action_client_.sendGoal(goal_);
-	}
-
-	void MyActionClient::goalCancel(){
-		 action_client_.cancelGoal();
-
-	}
-
-	void MyActionClient::goalClear(){
-		goal_.nav_path.poses.clear();
-		geometry_msgs::PoseStamped pose_stamped;
-	    geometry_msgs::Pose pose;
-	    pose.position.x = 0.0; // say desired x-coord is 1
-	    pose.position.y = 0.0;
-	    pose.position.z = 0.0; // let's hope so!
-	    pose.orientation.x = 0.0; //always, for motion in horizontal plane
-	    pose.orientation.y = 0.0; // ditto
-	    pose.orientation.z = 0.0; // implies oriented at yaw=0, i.e. along x axis
-	    pose.orientation.w = 1.0; //sum of squares of all components of unit quaternion is 1
-	    pose_stamped.pose = pose;
-	    goal_.nav_path.poses.push_back(pose_stamped);
-	    goal_.rotate=true;
-	    action_client_.sendGoal(goal_);
-	}
+    pose.position.x = 0.0; // say desired x-coord is 1
+    pose.position.y = 0.0;
+    pose.position.z = 0.0; // let's hope so!
+    pose.orientation.x = 0.0; //always, for motion in horizontal plane
+    pose.orientation.y = 0.0; // ditto
+    pose.orientation.z = 0.0; // implies oriented at yaw=0, i.e. along x axis
+    pose.orientation.w = 1.0; //sum of squares of all components of unit quaternion is 1
+    pose_stamped.pose = pose;
+    goal_.nav_path.poses.push_back(pose_stamped);
+    
+    // some more poses...
+    quat = convertPlanarPhi2Quaternion(0); // get a quaternion corresponding to this heading
+    pose_stamped.pose.orientation = quat;   
+    
+    pose_stamped.pose.position.x=20; 
+    pose_stamped.pose.position.y=0.0; 
+    goal_.nav_path.poses.push_back(pose_stamped);
+  
+    action_client_.sendGoal(goal_);
+}
 
 
+geometry_msgs::Quaternion MyActionClient::convertPlanarPhi2Quaternion(double phi) {
+    geometry_msgs::Quaternion quaternion;
+    quaternion.x = 0.0;
+    quaternion.y = 0.0;
+    quaternion.z = sin(phi / 2.0);
+    quaternion.w = cos(phi / 2.0);
+    return quaternion;
+}
 
 
 int main(int argc, char **argv) {
@@ -229,31 +177,20 @@ int main(int argc, char **argv) {
     MyActionClient my_client;
     my_client.setup();
     	    
-	   ros::spin(); 
-    /*
+	   //ros::spin(); 
+    
     while(ros::ok()) {
     	
-    	if(!g_lidar_alarm && !g_rotating_feedback){
-    		ros::spinOnce();
-    	}
-    	else if(g_lidar_alarm && !g_rotating_feedback){
-    		ROS_INFO("we gonna crash");
+    	if((g_lidar_alarm && !g_rotating) || (!g_lidar_alarm && g_rotating)){
+    		ROS_INFO("Halting Server State");
     		my_client.goalCancel();
-    		my_client.goalClear();
-    		g_rotating_feedback=true;
-    		ros::spinOnce();
-    	}
-    	else if(!g_lidar_alarm && g_rotating_feedback){
-    		ROS_INFO("you spin me right round");
-    		my_client.goalCancel();
-    		my_client.goalReset();
-    		g_rotating_feedback=false;
+    		g_rotating=!g_rotating;
     		ros::spinOnce();
     	}
     	else{
     		ros::spinOnce();
     	}
     }
-*/
+
     return 0;
 }

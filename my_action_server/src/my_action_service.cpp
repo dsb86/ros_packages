@@ -106,15 +106,19 @@ void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_ser
       
     goal_.nav_path= goal->nav_path;
     goal_.rotate= goal->rotate;
-    feedback_.fdbk=false;
-    int npts = goal_.nav_path.poses.size();
-     ROS_INFO("received path request with %d poses",npts); 
+
     if(!goal_.rotate){
-        as_.publishFeedback(feedback_);
+        
+        int npts = goal_.nav_path.poses.size();
+        ROS_INFO("received path request with %d poses",npts); 
         for (int i=0;i<npts;i++) { //visit each subgoal
+            ros::spinOnce();
             if(as_.isPreemptRequested() || !ros::ok()){
+                ROS_INFO("Doing Halt From Lin");
                 as_.setPreempted();
                 do_halt();
+                feedback_.fdbk=false;
+                as_.publishFeedback(feedback_);
                 break;
             }
             else{
@@ -156,12 +160,15 @@ void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_ser
         }
     }
     else{
-        g_twist_cmd.linear.x=0.0;
         while(1)
         {
+            ros::spinOnce();
             if(as_.isPreemptRequested() || !ros::ok()){
+                ROS_INFO("Doing Halt From Rot");
+                feedback_.fdbk=true;
                 as_.setPreempted();
                 do_halt();
+                as_.publishFeedback(feedback_);
                 break;
             }
             else{
