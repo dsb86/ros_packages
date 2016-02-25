@@ -86,7 +86,7 @@ void MyActionClient::setup(){
     
    	g_alarm_subscriber = nh_.subscribe("lidar_alarm",1, &MyActionClient::lidarCb, this);
   
-    action_client_.sendGoal(goal_, &feedbackCb);
+    action_client_.sendGoal(goal_);
 }
 
 void MyActionClient::lidarCb(const std_msgs::Bool& lidar_alarm){
@@ -124,7 +124,7 @@ void MyActionClient::feedbackCb(const my_action_server::pathFeedbackConstPtr& fd
 void MyActionClient::goalRotate(){
 	goal_.nav_path.poses.clear();
     goal_.rotate=true;
-    action_client_.sendGoal(goal_, &feedbackCb);
+    action_client_.sendGoal(goal_);
 }
 
 void MyActionClient::goalResume(){
@@ -156,7 +156,7 @@ void MyActionClient::goalResume(){
     pose_stamped.pose.position.y=0.0; 
     goal_.nav_path.poses.push_back(pose_stamped);
   
-    action_client_.sendGoal(goal_, &feedbackCb);
+    action_client_.sendGoal(goal_);
 }
 
 
