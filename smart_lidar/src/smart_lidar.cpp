@@ -6,7 +6,7 @@
 #include <std_msgs/Bool.h> // boolean message 
 
 
-const double MIN_SAFE_DISTANCE = 2.5; // set alarm if anything is within 0.5m of the front of robot
+const double MIN_SAFE_DISTANCE = 2.0; // set alarm if anything is within 0.5m of the front of robot
 
 // these values to be set within the laser callback
 float ping_dist_in_front_=3.0; // global var to hold length of a SINGLE LIDAR ping--in front
@@ -39,11 +39,11 @@ void laserCallback(const sensor_msgs::LaserScan& laser_scan) {
         
     }
     
-    int c=0;//ping_index_;
+    int c=20;//ping_index_;
    
     bool danger=false;
     
-    while(c<(ping_index_*2) && !danger){
+    while(c<(ping_index_*2-20) && !danger){
         ping_dist_in_front_ = laser_scan.ranges[c];
         if (ping_dist_in_front_<MIN_SAFE_DISTANCE) {
           danger=true;

@@ -36,9 +36,10 @@ public:
     }
     // Action Interface
     void lidarCb(const std_msgs::Bool& lidar_alarm);
+    void setup();
     void feedbackCb(const my_action_server::pathFeedbackConstPtr& fdbk_msg);
     geometry_msgs::Quaternion convertPlanarPhi2Quaternion(double phi);
-    void setup();
+    
     void goalRotate();
     void goalResume();
     void goalCancel();
@@ -86,7 +87,11 @@ void MyActionClient::setup(){
     
    	g_alarm_subscriber = nh_.subscribe("lidar_alarm",1, &MyActionClient::lidarCb, this);
   
-    action_client_.sendGoal(goal_, &feedbackCb);
+    action_client_.sendGoal(goal_, 
+        Client::SimpleDoneCallback(), 
+        Client::SimpleActiveCallback(),
+        boost::bind(&MyActionClient::feedbackCb, this, _1)
+        );
 }
 
 void MyActionClient::lidarCb(const std_msgs::Bool& lidar_alarm){
@@ -109,7 +114,7 @@ void MyActionClient::feedbackCb(const my_action_server::pathFeedbackConstPtr& fd
     ROS_INFO("feedback status");
     feedback_.fdbk = fdbk_msg->fdbk;
      //make status available to "main()"
-	if(feedback_.fdbk){
+	if(!feedback_.fdbk){
 		ROS_INFO("Beggining Rotation");
 		goalRotate();
 		ros::spinOnce();
@@ -124,7 +129,13 @@ void MyActionClient::feedbackCb(const my_action_server::pathFeedbackConstPtr& fd
 void MyActionClient::goalRotate(){
 	goal_.nav_path.poses.clear();
     goal_.rotate=true;
-    action_client_.sendGoal(goal_, &feedbackCb);
+        action_client_.sendGoal(goal_, 
+        Client::SimpleDoneCallback(), 
+        Client::SimpleActiveCallback(),
+        boost::bind(&MyActionClient::feedbackCb, this, _1)
+        );
+        //action_client_.sendGoal(goal_, boost::bind(&MyActionClient::feedbackCb, this, _1), Client::SimpleFeedbackCallback());
+
 }
 
 void MyActionClient::goalResume(){
@@ -155,8 +166,13 @@ void MyActionClient::goalResume(){
     pose_stamped.pose.position.x=20; 
     pose_stamped.pose.position.y=0.0; 
     goal_.nav_path.poses.push_back(pose_stamped);
-  
-    action_client_.sendGoal(goal_, &feedbackCb);
+      action_client_.sendGoal(goal_, 
+        Client::SimpleDoneCallback(), 
+        Client::SimpleActiveCallback(),
+        boost::bind(&MyActionClient::feedbackCb, this, _1)
+        );
+        //action_client_.sendGoal(goal_, boost::bind(&MyActionClient::feedbackCb, this, _1), Client::SimpleFeedbackCallback());
+
 }
 
 

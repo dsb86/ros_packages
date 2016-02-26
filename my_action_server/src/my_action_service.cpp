@@ -184,7 +184,7 @@ void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_ser
 void MyActionServer::do_evasive_spin(){
     //feedback_.fdbk=true;
     //as_.publishFeedback(feedback_);
-    do_spin(0.5);
+    do_spin(0.1);
 }
 
 double MyActionServer::sgn(double x) { if (x>0.0) {return 1.0; }
