@@ -18,6 +18,7 @@ typedef actionlib::SimpleActionClient<my_action_server::pathAction> Client;
 bool g_lidar_alarm=false;
 bool g_rotating=false;
 ros::Subscriber g_alarm_subscriber;
+geometry_msgs::Pose g_current_pose; 
 
 class MyActionClient
 {
@@ -113,6 +114,8 @@ void MyActionClient::goalCancel(){
 void MyActionClient::feedbackCb(const my_action_server::pathFeedbackConstPtr& fdbk_msg) {
     ROS_INFO("feedback status");
     feedback_.fdbk = fdbk_msg->fdbk;
+    feedback_.currPose=fdbk_msg->currPose;
+    g_current_pose=feedback_.currPose;
      //make status available to "main()"
 	if(!feedback_.fdbk){
 		ROS_INFO("Beggining Rotation");
@@ -149,22 +152,23 @@ void MyActionClient::goalResume(){
 	geometry_msgs::PoseStamped pose_stamped;
     geometry_msgs::Pose pose;
 
-    pose.position.x = 0.0; // say desired x-coord is 1
-    pose.position.y = 0.0;
-    pose.position.z = 0.0; // let's hope so!
-    pose.orientation.x = 0.0; //always, for motion in horizontal plane
-    pose.orientation.y = 0.0; // ditto
-    pose.orientation.z = 0.0; // implies oriented at yaw=0, i.e. along x axis
-    pose.orientation.w = 1.0; //sum of squares of all components of unit quaternion is 1
+    pose.position.x = 0; // say desired x-coord is 1
+    pose.position.y = 0;
+    pose.position.z = 0; // let's hope so!
+    pose.orientation.x = 0; //always, for motion in horizontal plane
+    pose.orientation.y = 0; // ditto
+    pose.orientation.z = 0; // implies oriented at yaw=0, i.e. along x axis
+    pose.orientation.w = 1;
+    //pose=g_current_pose;
     pose_stamped.pose = pose;
-    goal_.nav_path.poses.push_back(pose_stamped);
+    //goal_.nav_path.poses.push_back(pose_stamped);
     
     // some more poses...
     quat = convertPlanarPhi2Quaternion(0); // get a quaternion corresponding to this heading
     pose_stamped.pose.orientation = quat;   
     
-    pose_stamped.pose.position.x=20; 
-    pose_stamped.pose.position.y=0.0; 
+    pose_stamped.pose.position.x+=20; 
+    pose_stamped.pose.position.y+=0.0; 
     goal_.nav_path.poses.push_back(pose_stamped);
       action_client_.sendGoal(goal_, 
         Client::SimpleDoneCallback(), 

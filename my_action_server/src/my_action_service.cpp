@@ -99,6 +99,23 @@ MyActionServer::MyActionServer() :
 // The name "demo" is prepended to other message types created automatically during compilation.
 // e.g.,  "demoAction" is auto-generated from (our) base name "demo" and generic name "Action"
 void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_server::pathAction>::GoalConstPtr& goal) {
+        g_twist_cmd.linear.x=0.0;
+    g_twist_cmd.linear.y=0.0;    
+    g_twist_cmd.linear.z=0.0;
+    g_twist_cmd.angular.x=0.0;
+    g_twist_cmd.angular.y=0.0;
+    g_twist_cmd.angular.z=0.0;  
+    
+    //define initial position to be 0
+    g_current_pose.position.x = 0.0;
+    g_current_pose.position.y = 0.0;
+    g_current_pose.position.z = 0.0;
+    
+    // define initial heading to be "0"
+    g_current_pose.orientation.x = 0.0;
+    g_current_pose.orientation.y = 0.0;
+    g_current_pose.orientation.z = 0.0;
+    g_current_pose.orientation.w = 1.0;
     ROS_INFO("callback activated");
     double yaw_desired, yaw_current, travel_distance, spin_angle;
     geometry_msgs::Pose pose_desired;
@@ -106,7 +123,7 @@ void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_ser
       
     goal_.nav_path= goal->nav_path;
     goal_.rotate= goal->rotate;
-
+    bool good=true;
     if(!goal_.rotate){
         
         int npts = goal_.nav_path.poses.size();
@@ -118,7 +135,10 @@ void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_ser
                 as_.setPreempted();
                 do_halt();
                 feedback_.fdbk=false;
+                feedback_.currPose=g_current_pose;
+                as_.setAborted(result_);
                 as_.publishFeedback(feedback_);
+                good=false;
                 break;
             }
             else{
@@ -158,6 +178,10 @@ void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_ser
                 }  // move forward 1m...just for illustration; SHOULD compute this from subgoal pose
             }
         }
+        if(good){
+            as_.setSucceeded();
+        }
+
     }
     else{
         while(1)
@@ -166,8 +190,10 @@ void MyActionServer::executeCB(const actionlib::SimpleActionServer<my_action_ser
             if(as_.isPreemptRequested() || !ros::ok()){
                 ROS_INFO("Doing Halt From Rot");
                 feedback_.fdbk=true;
+                feedback_.currPose=g_current_pose;
                 as_.setPreempted();
                 do_halt();
+                 //as_.setAborted(result_);
                 as_.publishFeedback(feedback_);
                 break;
             }
@@ -244,6 +270,7 @@ void MyActionServer::do_spin(double spin_ang) {
 
     }  
     do_halt(); 
+    //as_.setSucceeded();
 }
 
 //a function to move forward by a specified distance (in meters), then halt
