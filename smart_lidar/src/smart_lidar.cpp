@@ -6,7 +6,7 @@
 #include <std_msgs/Bool.h> // boolean message 
 
 
-const double MIN_SAFE_DISTANCE = 2.5; // set alarm if anything is within 0.5m of the front of robot
+const double MIN_SAFE_DISTANCE =2; // set alarm if anything is within 0.5m of the front of robot
 
 // these values to be set within the laser callback
 float ping_dist_in_front_=3.0; // global var to hold length of a SINGLE LIDAR ping--in front
@@ -17,6 +17,7 @@ double angle_increment_=0.01;
 double range_min_ = .06;
 double range_max_ =4.09;
 bool laser_alarm_=false;
+//double view_cone_=3.5;
 
 ros::Publisher lidar_alarm_publisher_;
 ros::Publisher lidar_dist_publisher_;
@@ -27,8 +28,11 @@ void laserCallback(const sensor_msgs::LaserScan& laser_scan) {
     if (ping_index_<0)  {
         //for first message received, set up the desired index of LIDAR range to eval
         angle_min_ = laser_scan.angle_min;
+        ROS_INFO("Min %f", angle_min_);
         angle_max_ = laser_scan.angle_max;
+        ROS_INFO("Max %f", angle_max_);
         angle_increment_ = laser_scan.angle_increment;
+        ROS_INFO("Inc %f", angle_increment_);
         range_min_ = laser_scan.range_min;
         range_max_ = laser_scan.range_max;
         // what is the index of the ping that is straight ahead?
@@ -40,14 +44,23 @@ void laserCallback(const sensor_msgs::LaserScan& laser_scan) {
     }
     
     int c=0;//ping_index_;
-   
+    ROS_INFO("c initialized to %d", c);
+    int max=(int)((angle_max_-angle_min_)/angle_increment_);
     bool danger=false;
-    
-    while(c<(ping_index_*2) && !danger){
+    double dangerNum;
+    double realAngle;
+    while(c<(max) && !danger){
+        //ROS_INFO("c index %d", c);
         ping_dist_in_front_ = laser_scan.ranges[c];
-        if (ping_dist_in_front_<MIN_SAFE_DISTANCE) {
+        //dangerNum=sin(realAngle)*MIN_SAFE_DISTANCE;
+         dangerNum=MIN_SAFE_DISTANCE;
+        ROS_INFO("ping dist in front = %f",ping_dist_in_front_);
+        ROS_INFO("ping danger= %f",dangerNum);
+        if (ping_dist_in_front_ < dangerNum ) {
           danger=true;
         }
+        realAngle+=angle_increment_;
+        ROS_INFO("real angle= %f",realAngle);
         c++;
       }
 

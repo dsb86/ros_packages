@@ -5,8 +5,9 @@ bool rotate
 nav_msgs/Path nav_path
 ---
 #result definition
-geometry_msgs/Pose currPos
+geometry_msgs/Pose currPose
 #int32 goal_stamp
 ---
 #feedback
 bool fdbk
+geometry_msgs/Pose currPose

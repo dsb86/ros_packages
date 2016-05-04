@@ -18,7 +18,6 @@ typedef actionlib::SimpleActionClient<my_action_server::pathAction> Client;
 bool g_lidar_alarm=false;
 bool g_rotating=false;
 ros::Subscriber g_alarm_subscriber;
-geometry_msgs::Pose g_current_pose; 
 
 class MyActionClient
 {
@@ -37,10 +36,9 @@ public:
     }
     // Action Interface
     void lidarCb(const std_msgs::Bool& lidar_alarm);
-    void setup();
     void feedbackCb(const my_action_server::pathFeedbackConstPtr& fdbk_msg);
     geometry_msgs::Quaternion convertPlanarPhi2Quaternion(double phi);
-    
+    void setup();
     void goalRotate();
     void goalResume();
     void goalCancel();
@@ -88,11 +86,7 @@ void MyActionClient::setup(){
     
    	g_alarm_subscriber = nh_.subscribe("lidar_alarm",1, &MyActionClient::lidarCb, this);
   
-    action_client_.sendGoal(goal_, 
-        Client::SimpleDoneCallback(), 
-        Client::SimpleActiveCallback(),
-        boost::bind(&MyActionClient::feedbackCb, this, _1)
-        );
+    action_client_.sendGoal(goal_);
 }
 
 void MyActionClient::lidarCb(const std_msgs::Bool& lidar_alarm){
@@ -114,10 +108,8 @@ void MyActionClient::goalCancel(){
 void MyActionClient::feedbackCb(const my_action_server::pathFeedbackConstPtr& fdbk_msg) {
     ROS_INFO("feedback status");
     feedback_.fdbk = fdbk_msg->fdbk;
-    feedback_.currPose=fdbk_msg->currPose;
-    g_current_pose=feedback_.currPose;
      //make status available to "main()"
-	if(!feedback_.fdbk){
+	if(feedback_.fdbk){
 		ROS_INFO("Beggining Rotation");
 		goalRotate();
 		ros::spinOnce();
@@ -132,13 +124,7 @@ void MyActionClient::feedbackCb(const my_action_server::pathFeedbackConstPtr& fd
 void MyActionClient::goalRotate(){
 	goal_.nav_path.poses.clear();
     goal_.rotate=true;
-        action_client_.sendGoal(goal_, 
-        Client::SimpleDoneCallback(), 
-        Client::SimpleActiveCallback(),
-        boost::bind(&MyActionClient::feedbackCb, this, _1)
-        );
-        //action_client_.sendGoal(goal_, boost::bind(&MyActionClient::feedbackCb, this, _1), Client::SimpleFeedbackCallback());
-
+    action_client_.sendGoal(goal_);
 }
 
 void MyActionClient::goalResume(){
@@ -152,31 +138,25 @@ void MyActionClient::goalResume(){
 	geometry_msgs::PoseStamped pose_stamped;
     geometry_msgs::Pose pose;
 
-    pose.position.x = 0; // say desired x-coord is 1
-    pose.position.y = 0;
-    pose.position.z = 0; // let's hope so!
-    pose.orientation.x = 0; //always, for motion in horizontal plane
-    pose.orientation.y = 0; // ditto
-    pose.orientation.z = 0; // implies oriented at yaw=0, i.e. along x axis
-    pose.orientation.w = 1;
-    //pose=g_current_pose;
+    pose.position.x = 0.0; // say desired x-coord is 1
+    pose.position.y = 0.0;
+    pose.position.z = 0.0; // let's hope so!
+    pose.orientation.x = 0.0; //always, for motion in horizontal plane
+    pose.orientation.y = 0.0; // ditto
+    pose.orientation.z = 0.0; // implies oriented at yaw=0, i.e. along x axis
+    pose.orientation.w = 1.0; //sum of squares of all components of unit quaternion is 1
     pose_stamped.pose = pose;
-    //goal_.nav_path.poses.push_back(pose_stamped);
+    goal_.nav_path.poses.push_back(pose_stamped);
     
     // some more poses...
     quat = convertPlanarPhi2Quaternion(0); // get a quaternion corresponding to this heading
     pose_stamped.pose.orientation = quat;   
     
-    pose_stamped.pose.position.x+=20; 
-    pose_stamped.pose.position.y+=0.0; 
+    pose_stamped.pose.position.x=20; 
+    pose_stamped.pose.position.y=0.0; 
     goal_.nav_path.poses.push_back(pose_stamped);
-      action_client_.sendGoal(goal_, 
-        Client::SimpleDoneCallback(), 
-        Client::SimpleActiveCallback(),
-        boost::bind(&MyActionClient::feedbackCb, this, _1)
-        );
-        //action_client_.sendGoal(goal_, boost::bind(&MyActionClient::feedbackCb, this, _1), Client::SimpleFeedbackCallback());
-
+  
+    action_client_.sendGoal(goal_);
 }
 
 
