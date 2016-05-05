@@ -60,6 +60,7 @@ target_link_libraries(find_plane_pcd_file pcl_utils)
 target_link_libraries(box_filter pcl_utils)
 cs_add_executable (cluster_extraction src/cluster_extraction.cpp)
 target_link_libraries (cluster_extraction ${PCL_LIBRARIES})
+
 cs_install()
 cs_export()
     

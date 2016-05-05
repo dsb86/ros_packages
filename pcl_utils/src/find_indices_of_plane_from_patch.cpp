@@ -30,6 +30,7 @@
 #include <pcl/filters/voxel_grid.h> 
 
 #include <pcl_utils/pcl_utils.h>  //a local library with some utility fncs
+#include <pcl/io/pcd_io.h>
 
 
 using namespace std;
@@ -42,6 +43,10 @@ void find_indices_of_plane_from_patch(pcl::PointCloud<pcl::PointXYZ>::Ptr input_
     Eigen::Vector4f plane_parameters;
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>); //pointer for color version of pointcloud
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr can_top(new pcl::PointCloud<pcl::PointXYZ>);
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr trans_top(new pcl::PointCloud<pcl::PointXYZ>);
 
     pcl::computePointNormal(*patch_cloud_ptr, plane_parameters, curvature); //pcl fnc to compute plane fit to point cloud
     cout << "PCL: plane params of patch: " << plane_parameters.transpose() << endl;
@@ -69,8 +74,18 @@ void find_indices_of_plane_from_patch(pcl::PointCloud<pcl::PointXYZ>::Ptr input_
     pcl::PassThrough<pcl::PointXYZ> pass; //create a pass-through object
     pass.setInputCloud(transformed_cloud_ptr); //set the cloud we want to operate on--pass via a pointer
     pass.setFilterFieldName("z"); // we will "filter" based on points that lie within some range of z-value
-    pass.setFilterLimits(-0.02, 0.02); //here is the range: z value near zero, -0.02<z<0.02
-    pass.filter(indices); //  this will return the indices of the points in   transformed_cloud_ptr that pass our test
-    cout << "number of points passing the filter = " << indices.size() << endl;
+    pass.setFilterLimits(0.115, 0.125); //here is the range: z value near zero, -0.02<z<0.02
+    pass.filter(*can_top);
+
+    pcl::transformPointCloud(*can_top, *trans_top, A_plane_wrt_camera);
+    pcl::PCDWriter writer;
+    std::stringstream ss;
+    ss << "can_top.pcd";
+    writer.write<pcl::PointXYZ> (ss.str (), *can_top, false);
+
+    Eigen::Vector3f can_coor = g_pcl_utils_ptr->compute_centroid(can_top);
+
+    
+    cout << "Can Coordinates Are = " << can_coor << endl;
     //This fnc populates the reference arg "indices", so the calling fnc gets the list of interesting points
 }

@@ -41,6 +41,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
+#
 
 using namespace std;
 extern PclUtils *g_pcl_utils_ptr; 
@@ -105,7 +106,7 @@ int main(int argc, char** argv) {
     ec.setInputCloud (downsampled_kinect_ptr);
     ec.extract (cluster_indices);
 
-    std::vector<pcl::PointIndices>::const_iterator it = (cluster_indices.begin ()+2);
+    std::vector<pcl::PointIndices>::const_iterator it = (cluster_indices.begin() + 3);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
     for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
       cloud_cluster->points.push_back (downsampled_kinect_ptr->points[*pit]); //*
@@ -123,9 +124,9 @@ int main(int argc, char** argv) {
     PclUtils pclUtils(&nh); //instantiate a PclUtils object--a local library w/ some handy fncs
     g_pcl_utils_ptr = &pclUtils; // make this object shared globally, so above fnc can use it too
 
-    
+    int go=1;
     while (ros::ok()) {
-       
+       if(go==1){
             find_indices_of_plane_from_patch(downsampled_kinect_ptr, cloud_cluster, indices);
             pcl::copyPointCloud(*downsampled_kinect_ptr, indices, *plane_pts_ptr); //extract these pts into new cloud
             //the new cloud is a set of points from original cloud, coplanar with selected patch; display the result
@@ -136,6 +137,8 @@ int main(int argc, char** argv) {
         pubDnSamp.publish(downsampled_cloud); //can directly publish a pcl::PointCloud2!!
         ros::spinOnce(); //pclUtils needs some spin cycles to invoke callbacks for new selected points
         ros::Duration(0.1).sleep();
+            go=0;
+        }
     }
 
     return 0;
