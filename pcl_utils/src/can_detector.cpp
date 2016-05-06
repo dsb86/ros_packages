@@ -33,7 +33,7 @@ using namespace std;
 
 
 extern pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_original(new pcl::PointCloud<pcl::PointXYZRGB>);
-const int Maxerr = 40;
+const int Maxerr = 10;
 
 bool got_kinect_image = false; //snapshot indicator
 void kinectCB(const sensor_msgs::PointCloud2ConstPtr& cloud) {
@@ -74,7 +74,7 @@ bool find_can_by_color(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in_cloud) {
             }
             // index.push_back(i);
     }
-    if (count < 250) 
+    if (count < 15) 
     {
         ROS_INFO("Recieved %d", count);
         return false;
