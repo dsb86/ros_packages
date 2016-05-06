@@ -45,6 +45,7 @@ cs_add_executable(pcd_snapshot src/pcd_snapshot.cpp)
 #cs_add_executable(demo_pcl2 src/demo_pcl2.cpp)
 
 cs_add_executable(display_pcd_file src/display_pcd_file.cpp)
+cs_add_executable(pcl_can_find src/can_detector.cpp)
 cs_add_executable(find_plane_pcd_file src/find_plane_pcd_file.cpp src/find_indices_of_plane_from_patch.cpp)
 #cs_add_executable(find_plane_pcd_file2 src/find_plane_pcd_file2.cpp src/find_indices_of_plane_from_patch2.cpp)
 cs_add_executable(box_filter src/box_filter_main.cpp src/find_indices_of_plane_from_patch2.cpp)
